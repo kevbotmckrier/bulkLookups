@@ -4,14 +4,17 @@
 
 var sid = process.env.BULK_SID;
 var auth = process.env.BULK_AUTH;
-var lookupType = process.env.BULK_LOOKUP_TYPE;
+var lookupType = process.env.BULK_LOOKUP_TYPE; // fraud or carrier
 var bulkCSVHeaders = process.env.BULK_CSV_HEADERS;
+var errorOutput = process.env.BULK_OUTPUT;
 
 if(!(process.argv[2] && sid && auth && lookupType && bulkCSVHeaders)) {
 
 	console.log("Please pass in the following variables: SID, Auth, .csv of phone numbers");
 	process.exit(1);
 
+} else {
+    console.log("You are running " + lookupType + " Lookups");
 }
 
 var pnCsv = process.argv[2];
@@ -27,9 +30,9 @@ var rp = require('request-promise');
 var parse = require('csv-parse');
 var transform = require('stream-transform');
 
-var stream = fs.createWriteStream('output.csv');
+var stream = fs.createWriteStream('output-' + lookupType + '.csv');
 
-var errorStream = fs.createWriteStream('errors.csv');
+var errorStream = fs.createWriteStream('errors-' + lookupType + '.csv');
 var lastErrorNumber = "";
 
 var errorList = [];
@@ -61,7 +64,7 @@ var q = async.queue(function(task,callback){
 
         if(lookupType === "fraud"){
             stream.write(response.phone_number+','+response.fraud.advanced_line_type+','+response.fraud.mobile_country_code+','+response.fraud.mobile_network_code+','+response.fraud.caller_name+','+response.fraud.is_ported+','+response.fraud.last_ported_date+'\n');
-        } else {
+        } else if (lookupType === "carrier") {
             var carrierName = response.carrier.name.replace(",","");
             stream.write(response.phone_number+','+carrierName+','+response.carrier.type+'\n');
         }
@@ -70,7 +73,9 @@ var q = async.queue(function(task,callback){
     })
     .catch(function(err){
         if(task)
-        console.log(err);
+        if(errorOutput){
+            console.log(err);            
+        }
         if(!task.retries){
             task.retries=1;
             q.push(task);
@@ -90,7 +95,7 @@ var q = async.queue(function(task,callback){
 
 q.drain = function(){
     console.log('All numbers looked up.');
-    if(errorList.length>0){
+    if(errorList.length>0 && errorOutput){
         console.log('Errors:\n',errorList);
     }
 
