@@ -6,7 +6,7 @@ var sid = process.env.BULK_SID;
 var auth = process.env.BULK_AUTH;
 var lookupType = process.env.BULK_LOOKUP_TYPE; // fraud or carrier
 var bulkCSVHeaders = process.env.BULK_CSV_HEADERS;
-var errorOutput = process.env.BULK_OUTPUT;
+var errorOutput = process.env.BULK_ERROR_OUTPUT;
 
 if(!(process.argv[2] && sid && auth && lookupType && bulkCSVHeaders)) {
 
@@ -49,7 +49,7 @@ var q = async.queue(function(task,callback){
 
     var uri = 'https://lookups.twilio.com/v1/PhoneNumbers/' + task.phoneNumber + uriSuffix;
 
-    options = {
+    var options = {
         json: true,
         uri: uri,
         method: 'GET',
@@ -62,10 +62,15 @@ var q = async.queue(function(task,callback){
     rp(options)
     .then(function(response){
 
-        if(lookupType === "fraud"){
+
+        if(response.carrier.name === null) {
+            console.log("error with this number: ", response.phone_number);
+        } else if(lookupType === "fraud"){
             stream.write(response.phone_number+','+response.fraud.advanced_line_type+','+response.fraud.mobile_country_code+','+response.fraud.mobile_network_code+','+response.fraud.caller_name+','+response.fraud.is_ported+','+response.fraud.last_ported_date+'\n');
         } else if (lookupType === "carrier") {
-            var carrierName = response.carrier.name.replace(",","");
+            if(response.carrier.name){
+                var carrierName = response.carrier.name.replace(",","");
+            }
             stream.write(response.phone_number+','+carrierName+','+response.carrier.type+'\n');
         }
         callback();
@@ -74,7 +79,7 @@ var q = async.queue(function(task,callback){
     .catch(function(err){
         if(task)
         if(errorOutput){
-            console.log(err);            
+            console.log('big error: ', err);
         }
         if(!task.retries){
             task.retries=1;
