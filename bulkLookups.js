@@ -62,7 +62,8 @@ var q = async.queue(function (task, callback) {
 
 
             if (response.carrier.name === null) {
-                console.log("error with this number: ", response.phone_number);
+                console.log("error with this number: ", task.phoneNumber);
+                errorStream.write(task.phoneNumber + response.carrier.error_code  + "\n");
             } else if (lookupType === "fraud") {
                 stream.write(response.phone_number + ',' + response.fraud.advanced_line_type + ',' + response.fraud.mobile_country_code + ',' + response.fraud.mobile_network_code + ',' + response.fraud.caller_name + ',' + response.fraud.is_ported + ',' + response.fraud.last_ported_date + '\n');
             } else if (lookupType === "carrier") {
@@ -87,7 +88,8 @@ var q = async.queue(function (task, callback) {
                 task.retries++;
                 q.push(task);
             } else {
-                errorStream.write(task.phoneNumber + "\n");
+                console.log("error with this number: ", task.phoneNumber);
+                errorStream.write(task.phoneNumber + "invalid\n");
                 errorList.push([task, 'Maximum retries exceeded!']);
             }
 
@@ -99,12 +101,14 @@ var q = async.queue(function (task, callback) {
 q.drain = function () {
     console.log('All numbers looked up.');
     if (errorList.length > 0 && errorOutput) {
-        console.log('Errors:\n', errorList);
+        if(errorOutput) {
+            console.log('Errors:\n', errorList);
+        }
+        console.log("Check errors-" + lookupType + ".csv for numbers and error codes");
+        console.log("See a list of errors codes at https://www.twilio.com/docs/api/errors");
     }
-
 };
 
-var csvData = [];
 fs.createReadStream(pnCsv)
     .pipe(parse({delimiter: ':'}))
     .on('data', function (csvrow) {

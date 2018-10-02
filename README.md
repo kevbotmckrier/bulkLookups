@@ -16,3 +16,7 @@ Error information (invalid numbers):
 error-[type].csv
  
 
+### Resources
+The error output will include the error response for each particular number.
+You can find a list of all Twilio error codes, [here](https://www.twilio.com/docs/api/errors);
+
