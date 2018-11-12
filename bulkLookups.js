@@ -2,16 +2,19 @@
 ////           Call script with: node bulkLookups.js SID Auth Phone Number .csv               ////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-if(!(process.argv[2]&&process.argv[3]&&process.argv[4])) {
+var sid = process.env.BULK_SID;
+var auth = process.env.BULK_AUTH;
+var lookupType = process.env.BULK_LOOKUP_TYPE;
+var bulkCSVHeaders = process.env.BULK_CSV_HEADERS;
+
+if(!(process.argv[2] && sid && auth && lookupType && bulkCSVHeaders)) {
 
 	console.log("Please pass in the following variables: SID, Auth, .csv of phone numbers");
 	process.exit(1);
 
 }
 
-var sid = process.argv[2];
-var auth = process.argv[3];
-var pnCsv = process.argv[4];
+var pnCsv = process.argv[2];
 
 var concurrency = 50;
 
@@ -26,11 +29,22 @@ var transform = require('stream-transform');
 
 var stream = fs.createWriteStream('output.csv');
 
+var errorStream = fs.createWriteStream('errors.csv');
+var lastErrorNumber = "";
+
 var errorList = [];
+
+var uriSuffix = (lookupType === "fraud") ? '?Type=fraud' : '?Type=carrier';
+if(lookupType === "fraud" && bulkCSVHeaders){
+    stream.write("phone_number,advanced_line_type,mobile_country_code,mobile_network_code,caller_name,is_ported,last_ported_type\n");
+} else if(lookupType === "carrier" && bulkCSVHeaders) {
+    stream.write("phone_number,carrier_name,carrier_type\n");
+
+}
 
 var q = async.queue(function(task,callback){
 
-    var uri = 'https://lookups.twilio.com/v1/PhoneNumbers/' + task.phoneNumber + '?Type=carrier';
+    var uri = 'https://lookups.twilio.com/v1/PhoneNumbers/' + task.phoneNumber + uriSuffix;
 
     options = {
         json: true,
@@ -40,16 +54,22 @@ var q = async.queue(function(task,callback){
             user: sid,
             pass: auth
         }
-    }
+    };
 
     rp(options)
     .then(function(response){
 
-        stream.write(response.phone_number+','+response.carrier.name+','+response.carrier.type+'\n');
+        if(lookupType === "fraud"){
+            stream.write(response.phone_number+','+response.fraud.advanced_line_type+','+response.fraud.mobile_country_code+','+response.fraud.mobile_network_code+','+response.fraud.caller_name+','+response.fraud.is_ported+','+response.fraud.last_ported_date+'\n');
+        } else {
+            var carrierName = response.carrier.name.replace(",","");
+            stream.write(response.phone_number+','+carrierName+','+response.carrier.type+'\n');
+        }
         callback();
 
     })
     .catch(function(err){
+        if(task)
         console.log(err);
         if(!task.retries){
             task.retries=1;
@@ -59,6 +79,7 @@ var q = async.queue(function(task,callback){
             task.retries++;
             q.push(task);
         } else {
+            errorStream.write(task.phoneNumber+"\n");
             errorList.push([task,'Maximum retries exceeded!']);
         }
 

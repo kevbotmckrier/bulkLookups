@@ -1,18 +1,11 @@
-# bulk lookups
-A node script for doing bulk lookups on a CSV of phone numbers. Uses Twilio's lookup API.
+# Bulk Lookups for Twilio Lookup
 
-## Requirements
-1. Development environment that runs node.js scripts (e.g., MacOS Terminal)
-2. A Twilio account with a credit card on file
-3. A .csv of phone numbers
+1. Add TWILIO SID and AUTH TOKEN to demo.env
+1. `source demo.env`
+1. Put source phone numbers into a csv file.  1 column of numbers. (e.g. 15551234567)
+1. Execute `node bulkLookup.js input.csv`
 
-## Setup
-Once you've cloned this repository and switched to the directory, install the app dependencies using `npm install`.
+* Code will run and output information to output.csv.
+* We will try each number 5 times.  If still invalid, we will output errors to errors.csv
+* 
 
-## Run the script
-`node bulkLookups.js TWILIO_ACCOUNT_SID TWILIO_AUTH_TOKEN PHONE_NUMBER_CSV`
-
-The command relies on your Twilio Account SID (ACXXXXXXXXXXXXXXXXX), Auth Token (random string, found in Twilio Console), and a CSV of phone numbers.
-
-## Sample CSV
-Coming soon.
