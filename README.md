@@ -7,14 +7,12 @@
 1. Put source phone numbers into a csv file.  1 column of numbers. (e.g. 15551234567)
 1. Execute `node bulkLookup.js input.csv`
 
-
 ## Output
 Found information:
 output-[type].csv
 
 Error information (invalid numbers):
 error-[type].csv
- 
 
 ### Resources
 The error output will include the error response for each particular number.
