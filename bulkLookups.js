@@ -35,11 +35,11 @@ var errorStream = fs.createWriteStream('errors-' + lookupType + '.csv');
 
 var errorList = [];
 
-var uriSuffix = (lookupType === "fraud") ? '?Type=fraud' : '?Type=carrier';
-if (lookupType === "fraud" && bulkCSVHeaders) {
-    stream.write("phone_number,advanced_line_type,mobile_country_code,mobile_network_code,caller_name,is_ported,last_ported_type\n");
-} else if (lookupType === "carrier" && bulkCSVHeaders) {
-    stream.write("phone_number,carrier_name,carrier_type\n");
+var uriSuffix = (lookupType === "carrier") ? '?Type=carrier' : '?Type=caller-name';
+if (lookupType === "carrier" && bulkCSVHeaders) {
+    stream.write("phone_number,carrier_name,carrier_type,mobile_country_code,mobile_network_code\n");
+} else if (lookupType === "caller-name" && bulkCSVHeaders) {
+    stream.write("phone_number,caller_name,caller_type\n");
 
 }
 
@@ -61,16 +61,20 @@ var q = async.queue(function (task, callback) {
         .then(function (response) {
 
 
-            if (response.carrier.name === null) {
+            
+            if (lookupType === "caller-name") {
+                if (response.caller_name.caller_name) {
+                    var caller_name = response.caller_name.caller_name.replace(",", "");
+                }
+                stream.write(response.phone_number + ',' + caller_name + ',' + response.caller_name.caller_type + '\n');
+            } else if (response.carrier.name === null) {
                 console.log("error with this number: ", task.phoneNumber);
                 errorStream.write(task.phoneNumber + response.carrier.error_code  + "\n");
-            } else if (lookupType === "fraud") {
-                stream.write(response.phone_number + ',' + response.fraud.advanced_line_type + ',' + response.fraud.mobile_country_code + ',' + response.fraud.mobile_network_code + ',' + response.fraud.caller_name + ',' + response.fraud.is_ported + ',' + response.fraud.last_ported_date + '\n');
             } else if (lookupType === "carrier") {
                 if (response.carrier.name) {
                     var carrierName = response.carrier.name.replace(",", "");
                 }
-                stream.write(response.phone_number + ',' + carrierName + ',' + response.carrier.type + '\n');
+                stream.write(response.phone_number + ',' + carrierName + ',' + response.carrier.type + ',' + response.carrier.mobile_country_code + ',' + response.carrier.mobile_network_code + '\n');
             }
             callback();
 
