@@ -1,4 +1,4 @@
-# Bulk Lookups for Twilio Lookup
+# [DEPRECATED] Bulk Lookups for Twilio Lookup
 
 1. Add TWILIO SID and AUTH TOKEN to demo.env
 1. Do you want to do `carrier` or `caller-name` Lookups?
