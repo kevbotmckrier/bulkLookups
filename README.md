@@ -1,5 +1,7 @@
 # [DEPRECATED] Bulk Lookups for Twilio Lookup
 
+This repository is deprecated. Please refer to https://github.com/AuthySE/BulkLookupV2 for the current repository powered by Lookup V2.
+
 1. Add TWILIO SID and AUTH TOKEN to demo.env
 1. Do you want to do `carrier` or `caller-name` Lookups?
     1. Put in the appropriate value.
